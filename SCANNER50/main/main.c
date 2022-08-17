@@ -66,6 +66,7 @@ void init_uart() {
 
 uint16_t cuenta = 0;
 uint16_t curse = 0;
+uint8_t *msg;
 int a = 0;
 
 static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param)
@@ -103,19 +104,15 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
             
             if(memcmp(addr,addr_2m,6)==0){
                 //printf("SCAN RESULT =======================\n");
-                uint8_t *adve = (uint8_t*)param->ext_adv_report.params.adv_data; 
-                //printf("MAC: ");
-                //for(int i = 0;i<6;i++){
-                //    printf("%02X",addr[i]);
-                //}
-                //printf("\n");
-                //printf("Primary phy: %d\n",param->ext_adv_report.params.primary_phy);
-                //printf("Secondary phy: %d\n",param->ext_adv_report.params.secondly_phy);
-                //printf("RSSI: %d\n",param->ext_adv_report.params.rssi);
-                adve[15] = 0x0D;
-                adve[16] = 0x0A;
-                cuenta = ((adve[13]<<8) | adve[14]);
-                uart_write_bytes(UART_PORT_NUM, (const char *) &adve[13], 4);
+                //adve = (uint8_t*)param->ext_adv_report.params.adv_data; 
+                msg[0] = param->ext_adv_report.params.adv_data[13];
+                msg[1] = param->ext_adv_report.params.adv_data[14];
+                msg[2] = -param->ext_adv_report.params.rssi;
+                msg[3] = 0x0D;
+                msg[4] = 0x0A;
+                //cuenta = ((param->ext_adv_report.params.adv_data[13]<<8) | param->ext_adv_report.params.adv_data[14]);
+                
+                uart_write_bytes(UART_PORT_NUM, (const char *) &msg[0], 5);
 
                 //if(cuenta == curse){
                 //    coun++;
@@ -161,6 +158,8 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
 void app_main(void)
 {
     printf("Hello worlds\n");
+
+    msg = malloc(5);
 
     esp_err_t ret;
 

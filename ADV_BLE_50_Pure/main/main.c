@@ -51,8 +51,8 @@ void init_gpiopin(){
 esp_ble_gap_ext_adv_params_t ext_adv_params = {
   
     .type = ESP_BLE_GAP_SET_EXT_ADV_PROP_NONCONN_NONSCANNABLE_UNDIRECTED,
-    .interval_min = 0x0140,//0xA0,
-    .interval_max = 0x0140,
+    .interval_min = 0xA0,//0x0140,
+    .interval_max = 0xA0,//0x0140,
     .channel_map = ADV_CHNL_ALL,
     .filter_policy = ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY,
     .primary_phy = ESP_BLE_GAP_PHY_CODED,
@@ -121,7 +121,7 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
         contador++;
         raw_ext_adv_data[13] = (uint8_t)(contador >> 8);
         raw_ext_adv_data[14] = (uint8_t)contador;
-        vTaskDelay(500/portTICK_PERIOD_MS);
+        vTaskDelay(1000/portTICK_PERIOD_MS);
         esp_ble_gap_config_ext_adv_data_raw(EXT_ADV_HANDLE,sizeof(raw_ext_adv_data),&raw_ext_adv_data[0]);
         esp_ble_gap_ext_adv_start(NUM_EXT_ADV, &ext_adv[0]);
 
