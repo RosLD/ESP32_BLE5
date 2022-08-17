@@ -23,9 +23,17 @@ let rssi = 0
 let nso = 0
 let nso_rssi = 0
 let losses = 0
+per = 0
+perico = 0
+termina = false
 
 let filedir = "csv/esto.csv"
 fs.writeFile(filedir,"Num seq;repeticiones\r\n",{flag:'w'},err => {});
+
+setTimeout(()=>{
+    
+    termina = true
+},1000*60*10)
 
 parser.on('data', (datos) => {
 
@@ -41,7 +49,7 @@ parser.on('data', (datos) => {
         if(count > 0){
         
             console.log("==============")
-            if(cursa != 0){
+            if(cursa != 0 || !isNaN(rssi)){
                 nso++;
                 nso_rssi += (-rssi/count)
             }
@@ -50,7 +58,10 @@ parser.on('data', (datos) => {
 
 
             console.log(`Num Seq ${cursa}: ${count}, rssi: ${rssi}`)
+            per += count
             console.log(`Número de muestras encontradas: ${nso} - ${(nso_rssi/nso).toFixed(2)}`)
+            
+            console.log(`Tasa: ${per}/${perico} = ${per/perico} `)
             console.log(`Perdidas: ${losses}`)
             content += `${cursa};${count};${rssi}\r\n`;
             fs.writeFile(filedir, content, { flag: 'a' }, err => {});
@@ -60,10 +71,18 @@ parser.on('data', (datos) => {
             count = 1
             rssi = 0
             content = ""
+            perico += 10
+            if(termina){
+                console.log("END OF CONTINUITY")
+                console.log(nso/300)
+            }
+
         
         }else{
             cursa = cuenta
             count = 1
+            per = 0
+            perico += 10
         }
         
     }else{
