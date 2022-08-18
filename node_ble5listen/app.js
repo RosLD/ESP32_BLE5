@@ -12,6 +12,20 @@ const serialport = new SerialPort({
 
 let limit = Buffer.from([0x0d, 0x0a]);
 
+/* Timestamp*/
+function pad(n, z) {
+    z = z || 2;
+    return ("00" + n).slice(-z);
+  }
+  
+  const getFechaCompleta = () => {
+    let d = new Date(),
+      dformat =
+        [pad(d.getHours()), pad(d.getMinutes()), pad(d.getSeconds())].join(":");
+  
+    return dformat;
+  };
+
 
 const parser = serialport.pipe(new ReadlineParser({ delimiter: limit, encoding: "hex"}))
 let chain = ''
@@ -23,17 +37,14 @@ let rssi = 0
 let nso = 0
 let nso_rssi = 0
 let losses = 0
-per = 0
-perico = 0
-termina = false
+let per = 0
+let perico = 0
+let continue_mode = true
 
-let filedir = "csv/esto.csv"
-fs.writeFile(filedir,"Num seq;repeticiones\r\n",{flag:'w'},err => {});
+let filedir = "csv/tfm_mue.csv"
+fs.writeFile(filedir,"Num seq;repeticiones;rssi;timestamp\r\n",{flag:'w'},err => {});
 
-setTimeout(()=>{
-    
-    termina = true
-},1000*60*10)
+
 
 parser.on('data', (datos) => {
 
@@ -62,20 +73,21 @@ parser.on('data', (datos) => {
             console.log(`Número de muestras encontradas: ${nso} - ${(nso_rssi/nso).toFixed(2)}`)
             
             console.log(`Tasa: ${per}/${perico} = ${per/perico} `)
-            console.log(`Perdidas: ${losses}`)
-            content += `${cursa};${count};${rssi}\r\n`;
+            
+            content += `${cursa};${count};${rssi};${getFechaCompleta()}\r\n`;
             fs.writeFile(filedir, content, { flag: 'a' }, err => {});
+
             if(cursa+1 != cuenta && cuenta != 0)
                 losses += cuenta - cursa  
+
+            console.log(`Perdidas: ${losses}`)
+            console.log(getFechaCompleta())
             cursa = cuenta
             count = 1
             rssi = 0
             content = ""
             perico += 10
-            if(termina){
-                console.log("END OF CONTINUITY")
-                console.log(nso/300)
-            }
+            
 
         
         }else{
@@ -83,6 +95,14 @@ parser.on('data', (datos) => {
             count = 1
             per = 0
             perico += 10
+
+            if(!continue_mode)
+                setTimeout(()=>{
+                
+                    console.log("Modo Medidas: Fin del intervalo")
+                    console.log(`PER: ${nso/300}`)
+                    process.exit(1)
+                },1000*60*1)
         }
         
     }else{
