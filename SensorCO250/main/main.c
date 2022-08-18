@@ -13,6 +13,9 @@
 #include "esp_bt_defs.h"
 #include "esp_bt_main.h"
 #include "esp_gatt_common_api.h"
+//ADC
+#include <driver/adc.h>
+#include <esp_adc_cal.h>
 
 #include "scd41.h"
 
@@ -25,22 +28,19 @@
 
 uint8_t addr_2m[6] = {0xc0, 0xde, 0x52, 0x00, 0x00, 0x02};
 
-
 esp_ble_gap_ext_adv_params_t ext_adv_params = {
-    //.type = ESP_BLE_GAP_SET_EXT_ADV_PROP_DIRECTED,
-    //.type = ESP_BLE_ADV_REPORT_EXT_ADV_IND,
-    //.type = ESP_BLE_GAP_SET_EXT_ADV_PROP_SCANNABLE,
+    
     .type = ESP_BLE_GAP_SET_EXT_ADV_PROP_NONCONN_NONSCANNABLE_UNDIRECTED,
     .interval_min = 0xA0,
     .interval_max = 0xA0,
     .channel_map = ADV_CHNL_ALL,
     .filter_policy = ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY,
-    .primary_phy = ESP_BLE_GAP_PHY_CODED,//ESP_BLE_GAP_PHY_CODED,//ESP_BLE_GAP_PHY_1M,
+    .primary_phy = ESP_BLE_GAP_PHY_CODED,
     .max_skip = 0,
-    .secondary_phy = ESP_BLE_GAP_PHY_1M,//ESP_BLE_GAP_PHY_1M,//poner combinaciones (a 1M ppk2 observar consumo)
+    .secondary_phy = ESP_BLE_GAP_PHY_CODED,
     .sid = 0,
     .scan_req_notif = false,
-    .own_addr_type = BLE_ADDR_TYPE_RANDOM,
+    .own_addr_type = BLE_ADDR_TYPE_PUBLIC,
 };
 
 static esp_ble_gap_ext_adv_t ext_adv[1] = {
@@ -60,6 +60,9 @@ RTC_DATA_ATTR uint8_t nseq = 0;
  float temp,hum = 0;
 RTC_DATA_ATTR uint8_t cmed = 0;
 
+RTC_DATA_ATTR uint8_t battery = 0;
+RTC_DATA_ATTR uint8_t ciclobat = 0;
+
 RTC_DATA_ATTR uint16_t co2_sum = 0;
 RTC_DATA_ATTR float temp_sum,hum_sum = 0;
 
@@ -71,6 +74,62 @@ static uint8_t raw_ext_adv_data[] = {
         0x03, 0x03, 0xE2, 0xFF,
         0x10, 0xff, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
 };
+
+//Bateria-----------------------------------------------------
+#define R2 1000
+#define R3 1000
+
+#define VOLTAGE_OUT(Vin) (((Vin) * R3) / (R2 + R3))
+
+#define NO_OF_SAMPLES   300         
+#define ADC_REFERENCE    1100 
+
+#define VOLTAGE_MAX 4200
+#define VOLTAGE_MIN 3300
+
+#define VOLTAGE_TO_ADC(in) ((ADC_REFERENCE * (in)) / 4096)
+
+#define BATTERY_MAX_ADC VOLTAGE_TO_ADC(VOLTAGE_OUT(VOLTAGE_MAX))
+#define BATTERY_MIN_ADC VOLTAGE_TO_ADC(VOLTAGE_OUT(VOLTAGE_MIN))
+
+static esp_adc_cal_characteristics_t *adc_chars;
+
+void calc_battery_percentage()
+{
+
+	adc1_config_width(ADC_WIDTH_12Bit);
+    adc1_config_channel_atten(ADC1_CHANNEL_2,ADC_ATTEN_11db);
+
+	adc_chars = calloc(1, sizeof(esp_adc_cal_characteristics_t));
+    esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_11db, ADC_WIDTH_12Bit, ADC_REFERENCE, adc_chars);
+
+	int val = 0;
+
+	//gpio_set_level(memoria,1);
+
+	for(int i = 0;i<NO_OF_SAMPLES;i++){
+
+		val += adc1_get_raw(ADC1_CHANNEL_2);
+
+	}
+    val /= NO_OF_SAMPLES;
+	
+	uint32_t adc = esp_adc_cal_raw_to_voltage(val, adc_chars);
+
+    int battery_percentage = (int)(100 * ((adc*2+44.4) - VOLTAGE_MIN) / (VOLTAGE_MAX - VOLTAGE_MIN));
+
+    if (battery_percentage < 0){
+		battery_percentage = 0;
+	}else if (battery_percentage > 100){
+		battery_percentage = 100;
+	}
+        
+	battery = battery_percentage;
+
+	
+	//gpio_set_level(memoria,0);
+    //return (uint8_t)battery_percentage;
+}
 
 
 static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param)
@@ -107,7 +166,7 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
         }else
             nseq++;
         
-        go_sleep(60-(mes*5));
+        go_sleep(4*60-(mes*5)); //Se quiere un ciclo de sleep de 4 segundos, por ello 4 minutos y se le resta el tiempo muestreo y envio
 
         break;
     case ESP_GAP_BLE_PERIODIC_ADV_SET_PARAMS_COMPLETE_EVT:
@@ -178,7 +237,7 @@ void bluetooth_on(void)
 
     esp_ble_gap_ext_adv_set_params(EXT_ADV_HANDLE, &ext_adv_params);
     
-    esp_ble_gap_ext_adv_set_rand_addr(EXT_ADV_HANDLE, addr_2m);
+    //esp_ble_gap_ext_adv_set_rand_addr(EXT_ADV_HANDLE, addr_2m);
     esp_ble_gap_config_ext_adv_data_raw(EXT_ADV_HANDLE, sizeof(raw_ext_adv_data), &raw_ext_adv_data[0]);
     
     esp_ble_gap_ext_adv_start(NUM_EXT_ADV, &ext_adv[0]);
@@ -250,6 +309,18 @@ void app_main(void)
             co2_old = co2;
             temp_old = (uint16_t)raw_ext_adv_data[13]<<8|raw_ext_adv_data[14];
             hum_old = (uint16_t)raw_ext_adv_data[15]<<8|raw_ext_adv_data[16];
+
+            raw_ext_adv_data[23] = (uint8_t)battery;
+
+            if(ciclobat == 0){
+	        	ciclobat = 6;
+	        	calc_battery_percentage();
+
+	        	raw_ext_adv_data[23] = (uint8_t)battery+128;
+
+	        }else{
+	        	ciclobat--;
+	        }
 
             bluetooth_on(); //Activate bluetooth and do stuff
 

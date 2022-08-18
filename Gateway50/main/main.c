@@ -21,13 +21,11 @@
 
 uint32_t scan_time = 10;     //Insert time in minutes
 
-uint8_t *addr;
-
 uint8_t *adve;
 
 uint8_t *msg;
 
-uint8_t addr_2m[6] = {0xc0, 0xde, 0x52, 0x00, 0x00, 0x02};
+
 
 
 static esp_ble_ext_scan_params_t ble_scan_params = {
@@ -69,33 +67,21 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
             //    printf("YES!\n");
             //}
             //printf("Adv type: %d\n",param->ext_adv_report.params.event_type);
-            printf("SCAN RESULT =======================\n");            
-
-            addr = (uint8_t*)param->ext_adv_report.params.addr;
             
-            if(memcmp(addr,addr_2m,6)==0){
-                adve = (uint8_t*)param->ext_adv_report.params.adv_data; 
-                //coun++;
-                if(adve[5]==0xE2 && adve[6]==0xFF){
+            
+            adve = (uint8_t*)param->ext_adv_report.params.adv_data; 
+            //coun++;
+            if(adve[5]==0xE2 && adve[6]==0xFF){
+                printf("SCAN RESULT =======================\n");   
 
-                    memcpy(msg,&adve[9],param->ext_adv_report.params.adv_data_len-9);
-                    for(int i = 0;i< param->ext_adv_report.params.adv_data_len-9;i++){
-                        printf("%02X",msg[i]);
-                    }
-                    printf("\n");
-
-                }
-                //printf("Match, %d\n",coun);
-
-                //printf("Cuenta actual: %d\n",cuenta);
-                memcpy(msg,&adve[9],param->ext_adv_report.params.adv_data_len-9);
+                memcpy(msg,&adve[9],param->ext_adv_report.params.adv_data_len-9);   
                 for(int i = 0;i< param->ext_adv_report.params.adv_data_len-9;i++){
                     printf("%02X",msg[i]);
                 }
                 printf("\n");
-                
+                printf("Bateria: %d\n",adve[param->ext_adv_report.params.adv_data_len-1]);
             }
- 
+            
             
             
             
@@ -128,7 +114,6 @@ void app_main(void)
     ESP_ERROR_CHECK( ret );
     esp_ble_gap_set_prefered_default_phy(ESP_BLE_GAP_PHY_OPTIONS_PREF_S8_CODING,ESP_BLE_GAP_PHY_OPTIONS_PREF_S8_CODING);
 
-    addr = malloc(6);
     msg = malloc(15);
     adve = malloc(255);
 

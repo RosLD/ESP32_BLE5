@@ -18,8 +18,8 @@
 #define rdy GPIO_NUM_25
 #define GPIO_INPUT_PIN_SEL ((1ULL<<rdy))
 
-#define SDA_IO_NUM 19
-#define SCL_IO_NUM 21
+#define SDA_IO_NUM 18
+#define SCL_IO_NUM 19
 #define WRITE_BIT I2C_MASTER_WRITE            
 #define READ_BIT I2C_MASTER_READ
 //ACKs
