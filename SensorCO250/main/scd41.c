@@ -179,10 +179,22 @@ bool get_ready_status(uint8_t direction){
 
     abc = (stdata[0]<<8|stdata[1]);
 
-    if(abc != 0x8000)
+    printf("Ready: %04X\n",abc);
+
+    if(abc == 0x0006)
+        return true;
+    return false;
+
+    //for(int i = 0; i<11;i++){
+    //    if(!(abc & i) == 0)
+    //        return false;
+    //}
+    //return true;
+
+    /*if(abc != 0x8000)
         return true;
 
-    return false;
+    return false;*/
     
 
 }

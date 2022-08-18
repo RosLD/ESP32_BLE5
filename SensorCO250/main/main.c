@@ -53,7 +53,7 @@ uint16_t contador = 0;
 //======================================PARAMETROS====================================
 uint8_t id = 1;
 uint8_t mes = 5;
-bool smode = false; //Single-shot mode True -> activated 
+bool smode = true; //Single-shot mode True -> activated 
 //Variables
 RTC_DATA_ATTR uint8_t nseq = 0;
  uint16_t co2 = 0;
@@ -251,6 +251,7 @@ void app_main(void)
     printf("ESP32 - SCD41 - UPCT - BLE 5.0\n");
 
     init_i2c();
+    
 
     esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
 
@@ -259,7 +260,7 @@ void app_main(void)
         while(!get_ready_status(SENSIRION)){
             vTaskDelay(20);
         }
-
+        
         do_sensor(SENSIRION,&co2,&temp,&hum);
 
         printf("======================================\n");
@@ -321,6 +322,9 @@ void app_main(void)
 	        }else{
 	        	ciclobat--;
 	        }
+
+            if(smode)
+                measure_oneshot(SENSIRION);
 
             bluetooth_on(); //Activate bluetooth and do stuff
 

@@ -26,6 +26,15 @@ function pad(n, z) {
     return dformat;
   };
 
+  const getnombre = () => {
+    let d = new Date(),
+      dformat =
+        [pad(d.getHours()), pad(d.getMinutes())].join("-");
+  
+    return dformat;
+  };
+
+
 
 const parser = serialport.pipe(new ReadlineParser({ delimiter: limit, encoding: "hex"}))
 let chain = ''
@@ -39,9 +48,9 @@ let nso_rssi = 0
 let losses = 0
 let per = 0
 let perico = 0
-let continue_mode = true
+let continue_mode = false
 
-let filedir = "csv/tfm_mue.csv"
+let filedir = `csv/tfm_mue_${getnombre()}.csv`
 fs.writeFile(filedir,"Num seq;repeticiones;rssi;timestamp\r\n",{flag:'w'},err => {});
 
 
@@ -100,7 +109,7 @@ parser.on('data', (datos) => {
                 setTimeout(()=>{
                 
                     console.log("Modo Medidas: Fin del intervalo")
-                    console.log(`PER: ${nso/300}`)
+                    console.log(`PER: ${nso/30}`)
                     process.exit(1)
                 },1000*60*1)
         }
