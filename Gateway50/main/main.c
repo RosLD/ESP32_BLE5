@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "nvs.h"
 #include "nvs_flash.h"
+#include <driver/uart.h>
 
 #include "esp_bt.h"
 #include "esp_gap_ble_api.h"
@@ -15,18 +16,41 @@
 #include "freertos/task.h"
 #include "freertos/FreeRTOS.h"
 
+
 #define LOG_TAG "SCANNER50"
 
-//int coun = 0;
+#define tx_pin 17
+#define rx_pin 18
 
-uint32_t scan_time = 10;     //Insert time in minutes
+//UART Buffer
+#define BUF_SIZE (1024)
+#define UART_PORT_NUM UART_NUM_2
+
+uint32_t scan_time = 60;     //Insert time in minutes
 
 uint8_t *adve;
 
 uint8_t *msg;
 
+void init_uart() {
+    /* Configure parameters of an UART driver,
+     * communication pins and install the driver */
+    uart_config_t uart_config = {
+        .baud_rate = 115200,
+        .data_bits = UART_DATA_8_BITS,
+        .parity    = UART_PARITY_EVEN,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE
+    };
+	
+    uart_param_config(UART_PORT_NUM, &uart_config);
+    //uart_set_pin(UART_NUM_0, ECHO_TEST_TXD, ECHO_TEST_RXD, ECHO_TEST_RTS, ECHO_TEST_CTS);
+    //uart_set_pin(UART_PORT_NUM,UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE,UART_PIN_NO_CHANGE,UART_PIN_NO_CHANGE);
+	uart_set_pin(UART_PORT_NUM,tx_pin,rx_pin,UART_PIN_NO_CHANGE,UART_PIN_NO_CHANGE);
+    uart_driver_install(UART_PORT_NUM, BUF_SIZE * 2, 0, 0, NULL, 0);
 
-
+	
+}
 
 static esp_ble_ext_scan_params_t ble_scan_params = {
 		
@@ -72,14 +96,15 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
             adve = (uint8_t*)param->ext_adv_report.params.adv_data; 
             //coun++;
             if(adve[5]==0xE2 && adve[6]==0xFF){
-                printf("SCAN RESULT =======================\n");   
+                //printf("SCAN RESULT =======================\n");   
 
                 memcpy(msg,&adve[9],param->ext_adv_report.params.adv_data_len-9);   
                 for(int i = 0;i< param->ext_adv_report.params.adv_data_len-9;i++){
                     printf("%02X",msg[i]);
                 }
                 printf("\n");
-                printf("Bateria: %d\n",adve[param->ext_adv_report.params.adv_data_len-1]);
+                uart_write_bytes(UART_PORT_NUM, (const char *) msg, param->ext_adv_report.params.adv_data_len-9);
+
             }
             
             
@@ -90,6 +115,8 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
         case ESP_GAP_BLE_SCAN_TIMEOUT_EVT:
 
             printf("\nSCAN TIMEOUT\n");
+            esp_ble_gap_start_ext_scan(scan_time*6000,0);
+            
             break;
 
         default:
@@ -102,6 +129,8 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
 void app_main(void)
 {
     printf("Hello worlds\n");
+
+    init_uart();
 
     esp_err_t ret;
 

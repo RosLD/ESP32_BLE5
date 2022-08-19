@@ -1,0 +1,7 @@
+{
+    "cmake.configureOnOpen": false,
+    "files.associations": {
+        "esp_wifi.h": "c",
+        "uart.h": "c"
+    }
+}
