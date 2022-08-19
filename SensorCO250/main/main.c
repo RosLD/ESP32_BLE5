@@ -53,7 +53,8 @@ uint16_t contador = 0;
 //======================================PARAMETROS====================================
 uint8_t id = 1;
 uint8_t mes = 5;
-bool smode = true; //Single-shot mode True -> activated 
+bool smode = true; //Single-shot mode True -> activated
+RTC_DATA_ATTR uint8_t tsleep = 4; 
 //Variables
 RTC_DATA_ATTR uint8_t nseq = 0;
  uint16_t co2 = 0;
@@ -166,7 +167,8 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
         }else
             nseq++;
         
-        go_sleep(4*60-(mes*5)); //Se quiere un ciclo de sleep de 4 segundos, por ello 4 minutos y se le resta el tiempo muestreo y envio
+        
+        go_sleep((60-(mes*5))+tsleep*60); //Deepsleep 4 minutos
 
         break;
     case ESP_GAP_BLE_PERIODIC_ADV_SET_PARAMS_COMPLETE_EVT:
@@ -252,13 +254,15 @@ void app_main(void)
 
     init_i2c();
     
+    
 
     esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
 
     if(cause == ESP_SLEEP_WAKEUP_TIMER){
+                
         
         while(!get_ready_status(SENSIRION)){
-            vTaskDelay(20);
+            vTaskDelay(500/portTICK_PERIOD_MS);
         }
         
         do_sensor(SENSIRION,&co2,&temp,&hum);

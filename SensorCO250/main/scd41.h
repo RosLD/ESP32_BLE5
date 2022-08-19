@@ -6,7 +6,7 @@
 #include <esp_sleep.h>
 
 //Getters//Setters
-void go_sleep(uint8_t tiemposleep);
+void go_sleep(uint16_t tiemposleep);
 
 void init_i2c();
 

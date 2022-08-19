@@ -66,8 +66,9 @@ uint8_t* read_i2c_msg(uint8_t direccion, size_t size){ //Read from i2c, requires
 
 
 //Deepsleep controller
-void go_sleep(uint8_t tiemposleep){
+void go_sleep(uint16_t tiemposleep){
 		
+    printf("Ill sleep for %d seconds\n",tiemposleep);
     esp_err_t comp = esp_sleep_enable_timer_wakeup(tiemposleep*1000000);
 
 	if(comp == ESP_OK){
@@ -167,6 +168,17 @@ void stop_sensor(uint8_t direction){//use it to calibrate and to set it to low p
 
 }
 
+void measure_oneshot(uint8_t direction){
+
+    
+    unsigned char msgsi[] = {0x21, 0x9d};
+
+    send_i2c_msg(msgsi,direction,2);
+
+}
+
+RTC_DATA_ATTR uint8_t cc = 0;
+
 bool get_ready_status(uint8_t direction){
 
     unsigned char msg1[] = {0xe4,0xb8};
@@ -183,6 +195,15 @@ bool get_ready_status(uint8_t direction){
 
     if(abc == 0x0006)
         return true;
+
+    cc++;
+    printf("CC: %d\n",cc);
+    if(cc == 2){
+        cc = 0;
+        measure_oneshot(direction);
+        vTaskDelay(2);
+        go_sleep(5);
+    }
     return false;
 
     //for(int i = 0; i<11;i++){
@@ -196,15 +217,6 @@ bool get_ready_status(uint8_t direction){
 
     return false;*/
     
-
-}
-
-void measure_oneshot(uint8_t direction){
-
-    
-    unsigned char msgsi[] = {0x21, 0x9d};
-
-    send_i2c_msg(msgsi,direction,2);
 
 }
 
