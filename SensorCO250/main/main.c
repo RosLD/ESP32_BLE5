@@ -132,6 +132,32 @@ void calc_battery_percentage()
     //return (uint8_t)battery_percentage;
 }
 
+#define muestreo GPIO_NUM_4
+#define deepsleep GPIO_NUM_5
+#define envio GPIO_NUM_6
+#define GPIO_OUTPUT_PIN_SEL ((1ULL<<muestreo) | (1ULL<<deepsleep) | (1ULL<<envio))
+#define ESP_INTR_FLAG_DEFAULT 0
+
+
+
+void init_gpiopin(){
+
+	gpio_config_t io_conf;
+    //disable interrupt
+    io_conf.intr_type = GPIO_INTR_DISABLE;
+    //set as output mode
+    io_conf.mode = GPIO_MODE_OUTPUT;
+    //bit mask of the pins that you want to set,e.g.GPIO18/19
+    io_conf.pin_bit_mask = GPIO_OUTPUT_PIN_SEL;
+    //disable pull-down mode
+    io_conf.pull_down_en = 0;
+    //disable pull-up mode
+    io_conf.pull_up_en = 0;
+    //configure GPIO with the given settings
+    gpio_config(&io_conf);
+	
+}
+
 
 static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param)
 {
@@ -161,7 +187,8 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
     case ESP_GAP_BLE_EXT_ADV_STOP_COMPLETE_EVT:
         
         ESP_LOGI(LOG_TAG, "ESP_GAP_BLE_EXT_ADV_STOP_COMPLETE_EVT, status %d", param->ext_adv_stop.status);
-
+        gpio_set_level(envio,0);
+        gpio_set_level(deepsleep,1);
         if(nseq == 255){
             nseq = 1;
         }else
@@ -253,7 +280,8 @@ void app_main(void)
     printf("ESP32 - SCD41 - UPCT - BLE 5.0\n");
 
     init_i2c();
-    
+    init_gpiopin();
+    gpio_set_level(deepsleep,0);
     
 
     esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
@@ -266,6 +294,7 @@ void app_main(void)
         }
         
         do_sensor(SENSIRION,&co2,&temp,&hum);
+        gpio_set_level(muestreo,0);
 
         printf("======================================\n");
         printf("CO2: %d\n",co2);
@@ -330,10 +359,11 @@ void app_main(void)
             if(smode)
                 measure_oneshot(SENSIRION);
 
+            gpio_set_level(envio,1);
             bluetooth_on(); //Activate bluetooth and do stuff
 
         }else{
-
+            gpio_set_level(muestreo,1);
             if(smode)
                 measure_oneshot(SENSIRION);
             vTaskDelay(2);

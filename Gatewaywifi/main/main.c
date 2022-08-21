@@ -34,7 +34,7 @@ TaskHandle_t Task1;
 #define EXAMPLE_ESP_WIFI_SSID      "IoTUT"
 #define EXAMPLE_ESP_WIFI_PASS      "vp:tppsd44"
 #define EXAMPLE_ESP_MAXIMUM_RETRY  10
-#define MQTT_SERVER "mqtt://212.128.44.50:1883"
+#define MQTT_SERVER "mqtt://192.168.102.150:1883"//"mqtt://212.128.44.50:1883"
 
 esp_mqtt_client_handle_t client;
 static EventGroupHandle_t s_wifi_event_group;
@@ -67,10 +67,10 @@ static void uart2_event_task(void *pvParameters)
                     
                     uart_read_bytes(UART_NUM_2, dtmp, event.size, portMAX_DELAY);
                     esp_mqtt_client_publish(client,topic,(const char *) &dtmp[0],event.size,0,0);
-					//for(int i = 0;i<event.size;i++){
-                    //    printf("%02X",dtmp[i]);
-                    //}
-                    //printf("\n");
+					for(int i = 0;i<event.size;i++){
+                        printf("%02X",dtmp[i]);
+                    }
+                    printf("\n");
                    
                     break;
                 //Event of HW FIFO overflow detected
@@ -292,7 +292,7 @@ void wifi_init_sta(void)
 
 void app_main(void)
 {
-
+    //init_uart();
     nvs_flash_init();
 	
     wifi_init_sta();

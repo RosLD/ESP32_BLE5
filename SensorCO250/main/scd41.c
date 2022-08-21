@@ -193,7 +193,7 @@ bool get_ready_status(uint8_t direction){
 
     printf("Ready: %04X\n",abc);
 
-    if(abc == 0x0006)
+    if(abc == 0x0006 || abc == 0x8006)
         return true;
 
     cc++;
