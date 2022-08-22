@@ -191,7 +191,7 @@ void app_main(void)
     //uint8_t pwt = esp_ble_tx_power_get(ESP_BLE_PWR_TYPE_ADV); it is at P3 dbm (3dBm console logs 10)
     //printf("Potencia actual %d \n",pwt);
 //
-    esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_ADV,ESP_PWR_LVL_N0); //<-- his power level
+    esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_ADV,ESP_PWR_LVL_P3); //<-- his power level
     vTaskDelay(1);
     uint8_t pwt = esp_ble_tx_power_get(ESP_BLE_PWR_TYPE_ADV); //it is at P3 dbm (3dBm console logs 10)
     printf("Potencia actual %d deberia dar 9\n",pwt);

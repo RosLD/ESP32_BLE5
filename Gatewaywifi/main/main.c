@@ -44,7 +44,7 @@ static EventGroupHandle_t s_wifi_event_group;
 
 static int s_retry_num = 0;
 
-char topic[] = "CRAIUPCT_co2";
+char topic[] = "CRAIUPCT_co2ble";
 char id[] = "esp_sen_1";
 
 
@@ -185,6 +185,7 @@ static void event_handler(void* arg, esp_event_base_t event_base,		//manejador d
             ESP_LOGI(TAG, "retry to connect to the AP");
         } else {
             xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
+            esp_restart();
         }
         ESP_LOGI(TAG,"connect to the AP fail");
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
